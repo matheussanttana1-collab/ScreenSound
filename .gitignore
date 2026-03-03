@@ -1,0 +1,42 @@
+# Build
+bin/
+obj/
+
+# IDE
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# NuGet
+packages/
+*.nupkg
+
+# Logs & temp
+*.log
+*.tmp
+*.cache
+
+# Secrets
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+*.pfx
+*.key
+
+# Database
+*.mdf
+*.ldf
+*.sqlite
+*.db
+
+# Test
+TestResults/
+coverage/
+
+# Publish
+publish/
+dist/
+
+*.txt

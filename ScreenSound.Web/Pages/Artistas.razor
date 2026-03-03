@@ -1,0 +1,68 @@
+﻿@page "/Artistas"
+@using ScreenSound.Web.Components
+@inject ArtistaAPI artistaAPI
+
+<h2>Catalogo De Artistas</h2>
+
+@if (artistas is not null)
+{
+	<div class ="grid">
+		@foreach(var artista in artistasPorPagina)
+		{
+			<ArtistaCard Artista="artista" />
+		}
+	</div>
+	<div class="pagination">
+		@for(int i = 1; i <= TotalPaginas; i++)
+		{
+			@*pagination e uma class predefinida do bootstrap, assim como btn m-1, e quando o usuario clicar no botao(1,2,3) o metodo
+			PaginaMudou ira mudar os artistas mostrados
+		*@
+			int paginaAtual = i;
+			<button class="btn m-1" @onclick="() => PaginaMudou(paginaAtual)">@paginaAtual</button>
+		}
+	</div>
+}
+else
+{
+	<p>Carregando...</p>
+}
+@code {
+
+	// Esse o numero de card's de artistas que vai apararecer por pagina
+	private int tamanhoDaPagina = 8;
+	//Lista de todos os artitas salvos no nosso banco
+	private ICollection<ArtistaResponse>? artistas;
+	//lista de todos objetos do tipo artista que serao mostrado em uma pagina
+	private ICollection<ArtistaResponse>? artistasPorPagina;
+	//Numero total de paginas
+	private int TotalPaginas;
+	//Count de todos os artistas no banco
+	private int TotalArtistas;
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		artistas = await artistaAPI.GetArtistasAsync();
+		if (artistas is not null)
+		{
+			//Define Dinamicamente o total de artistas
+			TotalArtistas = artistas.Count();
+			// Defini o total de Paginas usando o Celling para arrendondar para cima (ex se tivermos 10 artistas / por 6 = 1,666 que vai virar 2)
+			TotalPaginas = (int)Math.Ceiling((double)TotalArtistas / tamanhoDaPagina);
+			//Ja chama o metodo para a lista de artistaPorPagina conter os 6 primeiros artistas
+			PaginaMudou(1);
+
+		}
+	}
+
+	private void PaginaMudou(int pagina)
+	{
+		//O Numero de artistas a pular na lista que define os artistas que serao mostrados por pagina (ex na primeira pagina 1-1*6= 0 
+		// entao nao ira pular nenhum, depois na primeira pagina ira pular 6 e pegar os proximos 6 na lista de artistas)
+		var skip = (pagina - 1) * tamanhoDaPagina;
+
+		artistasPorPagina = artistas.Skip(skip).Take(tamanhoDaPagina).ToList();
+	}
+
+}

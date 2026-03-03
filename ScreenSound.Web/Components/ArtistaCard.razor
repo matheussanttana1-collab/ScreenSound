@@ -1,0 +1,28 @@
+﻿@inject IConfiguration configuration;
+<div class="card-artista">
+
+	<img src="@imageServer/FotosPerfil/@Artista.FotoPerfil" class="card-img"/>		
+	
+	<div class="card-body">
+		<h4>@Artista!.Nome</h4>
+		<p class="bio">@Artista.Bio</p>
+		<a class="bnt" href="/EditarArtista/@Artista.Id">Editar</a>
+
+	</div>
+</div>
+
+@code {
+
+	public string imageServer { get; set; }
+	[Parameter]
+	public ArtistaResponse? Artista { get; set; }
+
+
+	protected override Task OnInitializedAsync()
+	{
+		imageServer = configuration["APIServer"];
+		return base.OnInitializedAsync();
+	}
+
+
+}

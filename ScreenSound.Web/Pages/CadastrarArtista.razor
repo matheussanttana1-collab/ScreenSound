@@ -1,0 +1,204 @@
+﻿@using System.ComponentModel.DataAnnotations
+@inject NavigationManager navigation
+@inject ArtistaAPI artistaAPI
+@page "/CadastrarArtista"
+
+<h2>Cadastro de Artista</h2>
+
+<!--
+EditForm é o componente de formulário do Blazor.
+Ele funciona como um <form>, mas integrado ao sistema de binding e validação.
+-->
+<EditForm Model="artista" OnValidSubmit="Cadastrar">
+
+	<!--
+	Habilita a validação baseada em Data Annotations
+	(ex: [Required], [StringLength], etc.)
+	Sem isso, as validações no modelo não funcionam.
+	-->
+	<DataAnnotationsValidator />
+
+	<!--
+	Exibe um resumo com todos os erros de validação do formulário.
+	Útil para feedback geral ao usuário.
+	-->
+	<ValidationSummary />
+
+	<!-- Grupo do campo Nome -->
+	<div class="form-group">
+		<label>Nome</label>
+		<br/>
+
+		<!--
+		InputText é o input de texto do Blazor.
+		@bind-Value cria um two-way binding:
+		- o que o usuário digita atualiza artista.Nome
+		- se artista.Nome mudar no código, o input atualiza
+		-->
+		<InputText @bind-Value="artista.Nome" />
+	</div>
+
+	<!-- Grupo do campo Biografia -->
+	<div class="form-group">
+		<label>Biografia</label>
+
+		<!--
+		InputTextArea é o equivalente ao <textarea>.
+		Rows define a altura inicial do campo.
+		Também utiliza two-way binding com artista.Bio.
+		-->
+		<InputTextArea @bind-Value="artista.Bio" class="input" Rows="4" />
+	</div>
+
+	<div class="form-group">
+		<!-- Label do campo de upload -->
+		<label>Foto Perfil</label>
+
+		<!--
+		Exibe a pré-visualização da imagem SOMENTE
+		se fileImage já tiver um valor (ou seja, após upload)
+		-->
+		@if (!string.IsNullOrEmpty(fileImage))
+		{
+			<!--
+			img-preview geralmente é uma classe CSS
+			para controlar tamanho, borda, etc.
+			OBS: aqui o correto é 'src', não 'scr'
+			-->
+			<img src="@fileImage" class="img-preview" />
+		}
+
+		<!--
+		InputFile é o componente de upload do Blazor.
+		OnChange dispara quando o usuário seleciona um arquivo.
+		accept restringe os tipos de arquivo no seletor.
+		-->
+		<InputFile OnChange="UploadFile" accept="image/jpeg" />
+	</div>
+
+	<br />
+
+	<!--
+	Botão de submit do formulário.
+	Ao clicar:
+	- o Blazor valida o Model (artista)
+	- se estiver válido, chama o método Cadastrar()
+	-->
+	<button type="submit" class="btn">Cadastrar</button>
+
+</EditForm>
+
+@code {
+
+	/*
+	Objeto que representa o estado do formulário.
+	Ele é:
+	- preenchido automaticamente pelo Blazor
+	- validado com DataAnnotations
+	- usado para montar o request da API
+	*/
+	private ArtistaModel artista { get; set; } = new();
+
+	/*
+	Variável reservada para futura implementação de upload de imagem.
+	Pode armazenar:
+	- base64
+	- nome do arquivo
+	- URL
+	*/
+	private string? fileImage { get; set; }
+
+	/*
+	Método chamado quando o formulário é submetido com sucesso.
+	Só é executado se todas as validações passarem.
+	*/
+	private async Task Cadastrar()
+	{
+
+		/*
+		Criação do DTO (request) que será enviado para a API.
+		*/
+		var request = new ArtistaRequest(
+				artista.Nome,
+				artista.Bio,
+				artista.FotoPerfil
+			);	
+
+		/*
+		Chamada assíncrona para a API que realiza o cadastro do artista.
+		*/
+		await artistaAPI.AddArtistaAsync(request);
+		navigation.NavigateTo("/Artistas");
+	}
+
+	private async Task UploadFile(InputFileChangeEventArgs e)
+	{
+		// Obtém o arquivo selecionado pelo usuário no input file
+		var file = e.File;
+
+		// Define o formato da imagem que será usado
+		// Aqui você está limitando para JPEG
+		var format = "image/jpeg";
+
+		// Redimensiona a imagem no lado do cliente (browser)
+		// Isso evita upload de imagens grandes
+		// 200x200 = largura e altura
+		var realizedImg = await file.RequestImageFileAsync(format, 200, 200);
+
+		// Abre um stream de leitura da imagem processada
+		using var stream = realizedImg.OpenReadStream();
+
+		// Cria um MemoryStream para armazenar a imagem em memória
+		using var memory = new MemoryStream();
+
+		// Copia os dados do stream da imagem para a memória
+		await stream.CopyToAsync(memory);
+
+		// Converte o conteúdo binário da imagem para Base64
+		// Base64 permite enviar a imagem como texto (JSON)
+		var imageUpload = Convert.ToBase64String(memory.ToArray());
+
+		// Cria uma Data URL (base64 + mime type)
+		// Isso permite exibir a imagem diretamente no <img>
+		fileImage = $"data:{format};base64,{imageUpload}";
+
+		// Salva apenas o Base64 no modelo
+		// Esse valor normalmente será enviado para a API
+		artista.FotoPerfil = imageUpload;
+	}
+
+	/*
+	Modelo usado exclusivamente pelo formulário.
+	Ele contém:
+	- os campos exibidos na tela
+	- as regras de validação
+	*/
+	public class ArtistaModel
+	{
+		/*
+		Nome do artista.
+		O atributo [Required] impede o envio do formulário
+		se o campo estiver vazio.
+		*/
+		[Required(ErrorMessage = "O Nome da artista é obrigatório")]
+		public string? Nome { get; set; }
+
+		/*
+		Biografia do artista.
+		Também é obrigatória para o envio do formulário.
+		*/
+		[Required(ErrorMessage = "A Biografia é obrigatória")]
+		[MaxLength(120, ErrorMessage = "A biografia pode ter no Maximo 120 Carcteres")]
+		public string? Bio { get; set; }
+
+		/*
+		Campo reservado para a imagem do artista.
+		Pode armazenar:
+		- URL da imagem
+		- nome do arquivo salvo
+		*/
+		public string? FotoPerfil { get; set; }
+	}
+}
+
+
