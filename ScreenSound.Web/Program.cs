@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.JSInterop;
 using ScreenSound.Web;
 using ScreenSound.Web.Service;
 
@@ -34,4 +35,17 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+// Tratamento de redirecionamento para SPA no GitHub Pages
+var jsRuntime = host.Services.GetRequiredService<IJSRuntime>();
+
+// Redireciona se vem do 404.html
+await jsRuntime.InvokeVoidAsync("eval", 
+	@"if (window.sessionStorage.redirect) {
+		var redirect = window.sessionStorage.redirect;
+		delete window.sessionStorage.redirect;
+		window.history.replaceState(null, null, redirect);
+	}");
+
+await host.RunAsync();
